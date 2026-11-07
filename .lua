@@ -124,8 +124,7 @@ appendCapturedArguments = function(j,r,p,...)local X=table.pack(...);table.move(
 
 -- Recovered Boo Hub main application; starts directly without a LuaProt loader.
 -- Reconstructed names/capture structures remain; see the verification report for coverage.
-return (function() local moderatorLookup; 
- 
+local ok, err = pcall(function() local moderatorLookup; 
  
  
  
@@ -13125,4 +13124,12 @@ end)(nil, nil, {
 end
 end
 		end
-end)()
+end)
+if not ok then
+    warn("[Boo Hub Error] Скрипт упал с ошибкой: " .. tostring(err))
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Boo Hub Error",
+        Text = "Скрипт упал. Напиши в консоль (F9), чтобы увидеть ошибку.",
+        Duration = 10
+    })
+end
