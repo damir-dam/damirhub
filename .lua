@@ -140,10 +140,13 @@ local instanceFactory, randomFactory
 		local library, coreGuiService, v6, v7 
 		do
 			local flag = getgenv().library ~= nil
-			
-			if flag then
-				getgenv().library:Unload()
-			end
+
+if flag and getgenv().library and type(getgenv().library.Unload) == "function" then
+    pcall(function()
+        getgenv().library:Unload()
+    end)
+end
+getgenv().library = nil
 			 
 			library = {
 				loaded = false,
@@ -1523,16 +1526,38 @@ end
 		end
 		tbl[Enum.UserInputType.MouseButton2] = "MB2"
 		tbl[Enum.UserInputType.MouseButton3] = "MB3"
-		do
-			local v15 = library
-			local create = v15.Create
-			local tbl2 = { Name = httpService:GenerateGUID(true) }
-			local hui = gethui()
-			tbl2.Parent = hui or coreGuiService
-			tbl2.DisplayOrder = 1
-			tbl2.ResetOnSpawn = false
-			library.ScreenGUI = create(v15, "ScreenGui", tbl2)
-		end
+do
+    local v15 = library
+    local create = v15.Create
+    local tbl2 = { Name = httpService:GenerateGUID(true) }
+    
+    -- БЕЗОПАСНОЕ ОПРЕДЕЛЕНИЕ РОДИТЕЛЯ
+    local okHui, hui = pcall(gethui)
+    local parentGui = nil
+    if okHui and hui and typeof(hui) == "Instance" then
+        if hui:IsA("BasePlayerGui") or hui:IsA("Folder") then
+            parentGui = hui
+        end
+    end
+    if not parentGui and coreGuiService then
+        local ok, _ = pcall(function()
+            local test = Instance.new("ScreenGui")
+            test.Parent = coreGuiService
+            test:Destroy()
+        end)
+        if ok then
+            parentGui = coreGuiService
+        end
+    end
+    if not parentGui then
+        parentGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    end
+    
+    tbl2.Parent = parentGui
+    tbl2.DisplayOrder = 1
+    tbl2.ResetOnSpawn = false
+    library.ScreenGUI = create(v15, "ScreenGui", tbl2)
+end
 		NotiHolder = library:Create("Frame", {
 			Parent = library.ScreenGUI,
 			Position = UDim2.new(1, -5, 0, 0),
@@ -7033,35 +7058,26 @@ end
 			library.new = fn5(table.pack(library, userInputService, tweenService))
 			getgenv().library = library
 			hooktest = function()
-				
-				return "original"
-			end
-			if not pcall(function()
-				
-				return hookfunction(hooktest, function()
-					
-					return "hooked"
-				end)
-			end) or hooktest() ~= "hooked" then
-				library:Notify({
-					text = identifyexecutor() .. " is not supported. Check weao.gg for executors. Executors:",
-					time = 15,
-					highlights = {
-						"Paid:",
-						"Potassium",
-						"Volt",
-						"Synapse Z",
-						"Seliware",
-						"------",
-						"Free:",
-						"Madium",
-						"Delta",
-						"------",
-						"Mac:",
-						"Opiumware",
-					},
-				})
-			end
+    return "original"
+end
+local hookOk = false
+pcall(function()
+    if typeof(hookfunction) == "function" then
+        hookfunction(hooktest, function()
+            return "hooked"
+        end)
+        hookOk = (hooktest() == "hooked")
+    end
+end)
+if not hookOk then
+    pcall(function()
+        library:Notify({
+            text = "Executor may not fully support all features. Use at your own risk.",
+            time = 10,
+            highlights = { tostring(identifyexecutor and identifyexecutor() or "Unknown") },
+        })
+    end)
+end
 			if not isfolder("Boo/games/" .. game.PlaceId) then
 				local v18 = makefolder
 				local placeId = game.PlaceId
@@ -9526,25 +9542,24 @@ end
 		end
 		aura = fn9(table.pack(v18, __boohub_scalar_capture_cell(function() return  character  end, function(__value)  character =__value end), library, localPlayer, GameUtil, tbl5, ItemData, tbl7, animations, statusEffects, Clock, v19, rendering, interpolationBuffer,  randomFactory , nil, v20, tbl9))
 		if not getgenv().sendReliable then
-			local v37 = hookfunction
-			getgenv().sendReliable = v37(client.sendReliable, function(arg2, arg3, arg4)
-				
-				
-				if not getgenv().library then
-					return getgenv().sendReliable(arg2, arg3, arg4)
-				end
-				
-				tbl7.sendReliableTable = bufferWriter.load(tbl7.sendReliableTable)
-				bufferWriter.alloc(1)
-				bufferWriter.u8(string.find(debug.info(3, "s"), "%.") and 0 or 0)
-				bufferWriter.alloc(1)
-				bufferWriter.u8(arg2)
-				arg3(arg4)
-				
-				tbl7.sendReliableTable = bufferWriter.export()
-				return getgenv().sendReliable(arg2, arg3, arg4)
-			end)
-		end
+    pcall(function()
+        if typeof(hookfunction) == "function" then
+            getgenv().sendReliable = hookfunction(client.sendReliable, function(arg2, arg3, arg4)
+                if not getgenv().library then
+                    return getgenv().sendReliable(arg2, arg3, arg4)
+                end
+                tbl7.sendReliableTable = bufferWriter.load(tbl7.sendReliableTable)
+                bufferWriter.alloc(1)
+                bufferWriter.u8(string.find(debug.info(3, "s"), "%.") and 0 or 0)
+                bufferWriter.alloc(1)
+                bufferWriter.u8(arg2)
+                arg3(arg4)
+                tbl7.sendReliableTable = bufferWriter.export()
+                return getgenv().sendReliable(arg2, arg3, arg4)
+            end)
+        end
+    end)
+end
 		local v37
 		v37 = library:new({ game = "Booga Booga Reborn | Free Version" })
 		do
